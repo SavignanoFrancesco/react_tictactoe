@@ -2,25 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 
-/*class Square extends React.Component {
-   /!* constructor(props) {
-        super(props);
-        this.state = {
-          value : null
-        };
-    }*!/
-    render() {
-        return (
-            <button
-                className="square"
-                onClick={() => this.props.onClick()}
-            >
-                { this.props.value }
-            </button>
-        );
-    }
-}*/
-
 function Square(props){
     return (
         <button
@@ -33,36 +14,17 @@ function Square(props){
 }
 
 class Board extends React.Component {
-   /* constructor(props) {
-        super(props);
-        this.state = {
-            squares : Array(9).fill(null),
-            xIsNext: true
-        };
-    }*/
-    /*handleClick(i){
-        const squares = this.state.squares.slice();
-        console.log(squares);
-        if(calculateWinner(squares) || squares[i]){
-            return;
-        }
-        squares[i] = this.state.xIsNext ? 'X' : 'O';
-        this.setState({
-            squares: squares,
-            xIsNext: !this.state.xIsNext
-        });
-    }*/
     renderSquare(i) {
         return <Square
             value={this.props.squares[i]}
             onClick={() => {this.props.onClick(i)}}
         />;
     }
+
     render() {
 
         return (
             <div>
-                <div className="status">{/*status*/}</div>
                 <div className="board-row">
                     {this.renderSquare(0)}
                     {this.renderSquare(1)}
@@ -89,14 +51,17 @@ class Game extends React.Component {
         this.state = {
             history: [{
                 squares: Array(9).fill(null)
-            }]
+            }],
+            stepNumber: 0,
+            xIsNext: true,
+            clickedEl: [0],
         };
     }
     handleClick(i){
-        const history = this.state.history;
+        const history = this.state.history.slice(0, this.state.stepNumber + 1);
         const current = history[history.length - 1];
         const squares = current.squares.slice();
-        console.log(squares);
+        const clickedElements = this.state.clickedEl;
         if(calculateWinner(squares) || squares[i]){
             return;
         }
@@ -105,25 +70,39 @@ class Game extends React.Component {
             history: history.concat([{
                 squares: squares,
             }]),
-            xIsNext: !this.state.xIsNext
+            stepNumber: history.length,
+            xIsNext: !this.state.xIsNext,
+            clickedEl: clickedElements.concat(i),
         });
+    }
+    jumpTo(step){
+        this.setState({
+            stepNumber: step,
+            xIsNext: (step % 2) === 0,
+            clickedEl: this.state.clickedEl.slice(0, step + 1)
+        })
     }
     render() {
         const history = this.state.history;
-        const current = history[this.state.history.length -1];
+        const current = history[this.state.stepNumber];
         const winner = calculateWinner(current.squares);
-
+        const clickedElements = this.state.clickedEl;
         const moves = history.map((step, move) => {
-            const desc =
-                move ?
-                'Go to move #' + move :
-                'Go to game start';
+            const desc = move ? 'Go to move #' + move : 'Go to game start';
+            if(move){
+                return (
+                    <li key={move}>
+                        <button onClick={() => this.jumpTo(move)}>{desc}</button>
+                        <span>{clickedElements[move]}</span>
+                    </li>
+                );
+            }
             return (
                 <li key={move}>
                     <button onClick={() => this.jumpTo(move)}>{desc}</button>
                 </li>
             );
-        });
+        })
 
         let status;
         let pair_flag = 0;
@@ -134,7 +113,7 @@ class Game extends React.Component {
             }
         }
 
-        if(winner) {
+        if(winner){
             status = 'The winner is ' + winner;
         }else if(pair_flag === 0){
             status = 'its a pair!'
